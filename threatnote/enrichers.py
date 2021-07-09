@@ -335,7 +335,7 @@ def get_riskiq_data(indicator, riskiq_username, riskiq_key):
             key = riskiq_key
             auth = (username, key)
     
-            risk_info = requests.get('https://api.passivetotal.org/v2/enrichment',params=params, auth=auth)
+            risk_info = requests.get('https://api.riskiq.net/pt/v2/enrichment', params=params, auth=auth)
             risk_data = risk_info.json()
             data['risk_classifications']=risk_data.get('classification')
             data['risk_sinkhole'] = risk_data.get('sinkhole')
@@ -349,16 +349,21 @@ def get_riskiq_data(indicator, riskiq_username, riskiq_key):
             risk_tags = risk_data.get('tags',[])
             for tag in risk_tags:
                 risk_list_tags.append(tag)
-            risk_tags = ", ".join(risk_list_tags)
-            data['risk_tags']=risk_tags
             data['risk_dynamicdns']=risk_data.get('dynamicDns')
     
-            risk_osint = requests.get('https://api.passivetotal.org/v2/enrichment/osint',params=params,auth=auth)
+            risk_osint = requests.get('https://api.riskiq.net/pt/v2/enrichment/osint', params=params,auth=auth)
             risk_osint = risk_osint.json()
             risk_sources = risk_osint.get('results',[])
             risk_sources_list = []
             for source in risk_sources:
-                risk_sources_list.append(source['sourceUrl'])
+                if source not in risk_sources_list:
+                    risk_sources_list.append(source['sourceUrl'])
+                if source.get('tags'):
+                    for tag in source['tags']:
+                        if tag not in risk_list_tags:
+                            risk_list_tags.append(tag)
+            risk_tags = ", ".join(risk_list_tags)
+            data['risk_tags'] = risk_tags
             data['risk_sources'] = ",".join(risk_sources_list)
         except Exception as err:
             print('RiskIQ error for indicator{}: {}'.format(indicator, traceback.format_exception(type(err), err, err.__traceback__)))
